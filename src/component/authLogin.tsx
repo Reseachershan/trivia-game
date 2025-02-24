@@ -1,7 +1,6 @@
 import { useEffect, useState } from "react";
 import { supabase } from "./supabaseClient";
 
-
 const Login = () => {
     const [user, setUser] = useState<any>(null);
 
@@ -17,15 +16,24 @@ const Login = () => {
     useEffect(() => {
         const fetchUser = async () => {
             const { data } = await supabase.auth.getSession();
-            setUser(data.session?.user ?? null);
+            const currentUser = data.session?.user ?? null;
+            setUser(currentUser);
+
+            if (currentUser) {
+                await saveUserToDB(currentUser);
+            }
         };
 
         fetchUser();
 
         const { data: authListener } = supabase.auth.onAuthStateChange(
-            (event, session) => {
+            async (event, session) => {
                 console.log("Auth state changed:", event, session);
                 setUser(session?.user ?? null);
+
+                if (session?.user) {
+                    await saveUserToDB(session.user);
+                }
             }
         );
 
@@ -33,6 +41,22 @@ const Login = () => {
             authListener.subscription.unsubscribe();
         };
     }, []);
+
+    const saveUserToDB = async (user: any) => {
+        const { data, error } = await supabase
+            .from("users")
+            .upsert([
+                {
+                    id: user.id,
+                    email: user.email,
+                    name: user.user_metadata?.full_name || "",
+                    created_at: new Date()
+                }
+            ]);
+
+        if (error) console.error("Error saving user:", error.message);
+        else console.log("User saved:", data);
+    };
 
     return (
         <div className="flex flex-col items-center justify-center min-h-screen bg-gray-100">
