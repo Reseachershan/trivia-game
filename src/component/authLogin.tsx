@@ -13,7 +13,7 @@ const Login = () => {
         const { data, error } = await supabase.auth.signInWithOAuth({
             provider,
             options: {
-                redirectTo: `${import.meta.env.VITE_SUPABASE_URL}/auth/v1/callback`,
+                redirectTo: `${window.location.origin}/auth/callback`,
             },
         });
 
